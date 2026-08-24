@@ -4,11 +4,14 @@ Instala Steam en tu Mac con chip Apple Silicon usando un entorno de compatibilid
 
 ## Instalación (2 pasos)
 
-**1.** Abre la app **Terminal** (Cmd+Espacio, escribe "Terminal") y pega esto:
+**1.** Abre la app **Terminal** (Cmd+Espacio, escribe "Terminal") y pega esto (son 2 líneas, cópialas juntas):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main/install.sh | bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main/install.sh
+bash install.sh
 ```
+
+(No sirve hacerlo como `curl ... | bash` en un solo paso — necesita una terminal real para poder pedirte la contraseña.)
 
 Te va a pedir tu contraseña de Mac dos veces (para instalar Homebrew y Cloudflare WARP — es normal, ambos son software real y necesario, no de este proyecto). La instalación completa tarda unos 10-15 minutos dependiendo de tu internet.
 

@@ -1,7 +1,24 @@
 #!/bin/bash
 # Instalador de Steam para Mac con Apple Silicon (M1-M5), vía Wine (Sikarugir) + D3DMetal.
-# Uso: curl -fsSL https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main/install.sh | bash
+# Uso:
+#   curl -fsSL -o install.sh https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main/install.sh
+#   bash install.sh
 set -e
+
+# Este instalador necesita pedir tu contraseña (para Homebrew/WARP). Eso requiere una
+# terminal real — si lo corriste como "curl ... | bash", la entrada queda ocupada por
+# el pipe y la contraseña nunca puede pedirse, así que fallamos temprano con un mensaje
+# claro en vez de dejar que Homebrew truene más adelante de forma confusa.
+if [ ! -t 0 ] && [ -z "$SAI_FORCE" ]; then
+  echo "⚠️  Este instalador necesita correr en una terminal normal, no con 'curl | bash'."
+  echo ""
+  echo "Corre esto en su lugar:"
+  echo ""
+  echo "  curl -fsSL -o install.sh https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main/install.sh"
+  echo "  bash install.sh"
+  echo ""
+  exit 1
+fi
 
 REPO_RAW="https://raw.githubusercontent.com/Astral910/steam-apple-silicon/main"
 APP_NAME="SteamMac"
