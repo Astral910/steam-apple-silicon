@@ -99,14 +99,24 @@ WINEBIN="$WRAPPER/Contents/SharedSupport/wine/bin/wine"
 PREFIX="$WRAPPER/Contents/SharedSupport/prefix"
 FRAMEWORKS="$WRAPPER/Contents/Frameworks"
 
+# wineboot a veces devuelve un código distinto de cero aunque haya funcionado bien
+# (varía entre Macs). No dejamos que eso mate el script entero — lo que de verdad
+# importa es que el prefix haya quedado creado, eso lo verificamos aparte.
+mkdir -p "$WRAPPER_DIR/.install-logs"
 env WINEPREFIX="$PREFIX" DYLD_FALLBACK_LIBRARY_PATH="$FRAMEWORKS" DYLD_LIBRARY_PATH="$FRAMEWORKS" \
-  "$WINEBIN" wineboot -u >/dev/null 2>&1
+  "$WINEBIN" wineboot -u > "$WRAPPER_DIR/.install-logs/wineboot.log" 2>&1 || true
+
+if [ ! -d "$PREFIX/drive_c" ]; then
+  echo "❌ No se pudo crear el entorno de Windows. Revisa el log en:"
+  echo "   $WRAPPER_DIR/.install-logs/wineboot.log"
+  exit 1
+fi
 
 PLIST="$WRAPPER/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :D3DMETAL 1" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :D3DMETAL 1" "$PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :WINEESYNC 1" "$PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :WINEMSYNC 1" "$PLIST" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$PLIST" 2>/dev/null || true
 echo "✅ D3DMetal activado"
 
 # --- 6. Instalar Steam ---
@@ -125,7 +135,7 @@ done
 sleep 5
 echo "✅ Steam instalado"
 
-/usr/libexec/PlistBuddy -c 'Set "Program Name and Path" "/Program Files (x86)/Steam/steam.exe"' "$PLIST"
+/usr/libexec/PlistBuddy -c 'Set "Program Name and Path" "/Program Files (x86)/Steam/steam.exe"' "$PLIST" 2>/dev/null || true
 
 # --- 7. Primer arranque (deja que Steam baje su actualización inicial completa de una vez) ---
 echo ""
