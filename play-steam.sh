@@ -55,8 +55,10 @@ TRANSPORTLOG="$LOGDIR/transport_client.txt"
 
 for i in $(seq 1 $MAX_INTENTOS); do
   echo "Abriendo Steam (intento $i de $MAX_INTENTOS)..."
-  LINEAS_ANTES=$(wc -l < "$CONNLOG" 2>/dev/null || echo 0)
-  TRANSPORT_LINEAS_ANTES=$(wc -l < "$TRANSPORTLOG" 2>/dev/null || echo 0)
+  LINEAS_ANTES=0
+  [ -f "$CONNLOG" ] && LINEAS_ANTES=$(wc -l < "$CONNLOG" 2>/dev/null || echo 0)
+  TRANSPORT_LINEAS_ANTES=0
+  [ -f "$TRANSPORTLOG" ] && TRANSPORT_LINEAS_ANTES=$(wc -l < "$TRANSPORTLOG" 2>/dev/null || echo 0)
 
   env WINEPREFIX="$PREFIX" DYLD_FALLBACK_LIBRARY_PATH="$FRAMEWORKS" DYLD_LIBRARY_PATH="$FRAMEWORKS" \
     "$WINEBIN" "C:\\Program Files (x86)\\Steam\\steam.exe" >/dev/null 2>&1 &
