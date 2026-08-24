@@ -118,16 +118,22 @@ pkill -9 -f "steam\.exe " 2>/dev/null || true
 BOOTLOG="$PREFIX/drive_c/Program Files (x86)/Steam/logs/bootstrap_log.txt"
 "$WRAPPER/Contents/MacOS/WineskinLauncher" >/dev/null 2>&1 &
 
-# Esperamos hasta 20 minutos a que el bootstrap termine de verdad (no un tiempo fijo)
+# El bootstrap incluido en el instalador suele estar desactualizado y necesita
+# actualizarse a sí mismo antes de bajar el cliente completo — a veces tarda varios
+# minutos. La señal real de "ya terminó" es que aparezca connection_log.txt con
+# contenido, porque eso solo pasa cuando el cliente real (no el bootstrap viejo)
+# ya está corriendo. NO matamos el proceso mientras tanto: interrumpirlo a medias
+# lo hace empezar de cero.
+CONNLOG="$PREFIX/drive_c/Program Files (x86)/Steam/logs/connection_log.txt"
 DONE=0
-for i in $(seq 1 240); do
+for i in $(seq 1 180); do
   sleep 5
-  if [ -f "$BOOTLOG" ] && tail -5 "$BOOTLOG" 2>/dev/null | grep -qE "Nothing to do|Verification complete"; then
+  if [ -f "$CONNLOG" ] && [ -s "$CONNLOG" ]; then
     DONE=1
     break
   fi
   if [ $((i % 12)) -eq 0 ]; then
-    echo "   ... sigue preparando (esto es normal la primera vez)"
+    echo "   ... sigue preparando (esto es normal la primera vez, puede tardar varios minutos)"
   fi
 done
 
