@@ -51,18 +51,34 @@ pkill -9 -f "steam\.exe " 2>/dev/null
 pkill -9 -f "steamwebhelper.exe" 2>/dev/null
 sleep 2
 
+TRANSPORTLOG="$LOGDIR/transport_client.txt"
+
 for i in $(seq 1 $MAX_INTENTOS); do
   echo "Abriendo Steam (intento $i de $MAX_INTENTOS)..."
   LINEAS_ANTES=$(wc -l < "$CONNLOG" 2>/dev/null || echo 0)
+  TRANSPORT_LINEAS_ANTES=$(wc -l < "$TRANSPORTLOG" 2>/dev/null || echo 0)
 
   env WINEPREFIX="$PREFIX" DYLD_FALLBACK_LIBRARY_PATH="$FRAMEWORKS" DYLD_LIBRARY_PATH="$FRAMEWORKS" \
     "$WINEBIN" "C:\\Program Files (x86)\\Steam\\steam.exe" >/dev/null 2>&1 &
+  WINEPID=$!
 
   sleep 40
 
   if tail -n +"$((LINEAS_ANTES + 1))" "$CONNLOG" 2>/dev/null | grep -q "Logged On"; then
     echo ""
     echo "✅ ¡Steam conectado! Ya puedes jugar."
+    exit 0
+  fi
+
+  # Si el proceso de Steam sigue vivo y no vemos el bug conocido de "conexión
+  # rechazada", lo dejamos abierto tal cual — probablemente solo está esperando
+  # a que inicies sesión manualmente. Matarlo aquí interrumpiría tu login.
+  SIGUE_VIVO=$(pgrep -f "steam\.exe " | head -1)
+  HUBO_RECHAZO=$(tail -n +"$((TRANSPORT_LINEAS_ANTES + 1))" "$TRANSPORTLOG" 2>/dev/null | grep -c "Connection rejected")
+
+  if [ -n "$SIGUE_VIVO" ] && [ "${HUBO_RECHAZO:-0}" -eq 0 ]; then
+    echo ""
+    echo "Steam sigue abierto. Si te pide iniciar sesión, hazlo en la ventana que se abrió."
     exit 0
   fi
 
