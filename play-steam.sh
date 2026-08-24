@@ -58,7 +58,7 @@ for i in $(seq 1 $MAX_INTENTOS); do
   env WINEPREFIX="$PREFIX" DYLD_FALLBACK_LIBRARY_PATH="$FRAMEWORKS" DYLD_LIBRARY_PATH="$FRAMEWORKS" \
     "$WINEBIN" "C:\\Program Files (x86)\\Steam\\steam.exe" >/dev/null 2>&1 &
 
-  sleep 35
+  sleep 40
 
   if tail -n +"$((LINEAS_ANTES + 1))" "$CONNLOG" 2>/dev/null | grep -q "Logged On"; then
     echo ""

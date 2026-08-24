@@ -16,12 +16,24 @@ echo " Instalador de Steam para Apple Silicon"
 echo "=========================================="
 echo ""
 
-# --- 1. Verificar Apple Silicon ---
+# --- 1. Verificar Apple Silicon + macOS ---
+MAC_MODEL=$(sysctl -n hw.model 2>/dev/null || echo "desconocido")
+CHIP=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "arm64")
+MACOS_VERSION=$(sw_vers -productVersion 2>/dev/null || echo "desconocida")
+MACOS_NAME=$(sw_vers -productName 2>/dev/null || echo "macOS")
+
 if [ "$(uname -m)" != "arm64" ]; then
-  echo "❌ Este instalador es solo para Macs con Apple Silicon (M1-M5). Tu Mac no es compatible."
+  echo "❌ Este instalador es solo para Macs con Apple Silicon (M1-M5). Tu Mac ($MAC_MODEL) no es compatible."
   exit 1
 fi
-echo "✅ Apple Silicon detectado ($(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'arm64'))"
+
+MACOS_MAJOR=$(echo "$MACOS_VERSION" | cut -d. -f1)
+if [ "$MACOS_MAJOR" -lt 13 ] 2>/dev/null; then
+  echo "⚠️  Detecté macOS $MACOS_VERSION. Se recomienda macOS 13 (Ventura) o más nuevo para mejor compatibilidad gráfica."
+  echo "   Puede que igual funcione, pero no está garantizado en versiones más viejas."
+fi
+
+echo "✅ $MAC_MODEL — $CHIP — $MACOS_NAME $MACOS_VERSION"
 
 # --- 2. Homebrew ---
 if ! command -v brew &>/dev/null; then
@@ -98,23 +110,44 @@ echo "✅ Steam instalado"
 
 /usr/libexec/PlistBuddy -c 'Set "Program Name and Path" "/Program Files (x86)/Steam/steam.exe"' "$PLIST"
 
-# --- 7. Primer arranque (deja que Steam baje su actualización inicial de una vez) ---
+# --- 7. Primer arranque (deja que Steam baje su actualización inicial completa de una vez) ---
 echo ""
-echo "Preparando Steam por primera vez (puede tardar unos minutos, es solo esta vez)..."
+echo "Preparando Steam por primera vez — va a descargar su actualización inicial (~300MB)."
+echo "Esto puede tardar varios minutos dependiendo de tu internet, es solo esta vez."
 pkill -9 -f "steam\.exe " 2>/dev/null || true
+BOOTLOG="$PREFIX/drive_c/Program Files (x86)/Steam/logs/bootstrap_log.txt"
 "$WRAPPER/Contents/MacOS/WineskinLauncher" >/dev/null 2>&1 &
-sleep 90
+
+# Esperamos hasta 20 minutos a que el bootstrap termine de verdad (no un tiempo fijo)
+DONE=0
+for i in $(seq 1 240); do
+  sleep 5
+  if [ -f "$BOOTLOG" ] && tail -5 "$BOOTLOG" 2>/dev/null | grep -qE "Nothing to do|Verification complete"; then
+    DONE=1
+    break
+  fi
+  if [ $((i % 12)) -eq 0 ]; then
+    echo "   ... sigue preparando (esto es normal la primera vez)"
+  fi
+done
+
 pkill -9 -f "steam\.exe " 2>/dev/null || true
 pkill -9 -f "steamwebhelper.exe" 2>/dev/null || true
 sleep 2
-echo "✅ Listo"
+
+if [ "$DONE" = "1" ]; then
+  echo "✅ Listo"
+else
+  echo "⚠️  La preparación inicial tardó más de lo esperado. No hay problema, el launcher"
+  echo "   terminará de descargar lo que falte la primera vez que le des Play."
+fi
 
 # --- 8. Instalar el launcher para jugar ---
 echo ""
 echo "Instalando el launcher..."
 curl -fsSL -o "$WRAPPER_DIR/play-steam.sh" "$REPO_RAW/play-steam.sh"
 chmod +x "$WRAPPER_DIR/play-steam.sh"
-curl -fsSL -o "$WRAPPER_DIR/Play Steam.command" "$REPO_RAW/Play Steam.command"
+curl -fsSL -o "$WRAPPER_DIR/Play Steam.command" "$REPO_RAW/Play%20Steam.command"
 chmod +x "$WRAPPER_DIR/Play Steam.command"
 curl -fsSL -o "$WRAPPER_DIR/.play-steam-version" "$REPO_RAW/VERSION" 2>/dev/null || echo "1" > "$WRAPPER_DIR/.play-steam-version"
 
